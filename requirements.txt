@@ -1,0 +1,24 @@
+# IoT Database Query Interface Requirements
+# Core dependencies for the natural language query system
+
+# Data handling and database
+pandas>=2.0.0
+sqlite3  # Built-in with Python
+
+# Web interface (Streamlit)
+streamlit>=1.28.0
+plotly>=5.15.0
+
+# Optional: Enhanced CLI experience
+# readline is usually built-in on Unix systems
+# For Windows, you might need: pyreadline3>=3.4.1
+
+# Development and testing (optional)
+pytest>=7.0.0
+pytest-cov>=4.0.0
+
+# LLM Integration
+anthropic>=0.34.0
+python-dotenv>=1.0.0
+
+# Note: Now includes Claude API for natural language processing

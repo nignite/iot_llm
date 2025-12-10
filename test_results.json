@@ -1,0 +1,92 @@
+[
+  {
+    "test_name": "Database Connectivity",
+    "status": "PASS",
+    "details": "Found 50,000 signal records",
+    "timestamp": "2025-12-09 09:46:48"
+  },
+  {
+    "test_name": "Query Interface Basic",
+    "status": "PASS",
+    "details": "Query returned 1 results",
+    "timestamp": "2025-12-09 09:46:48"
+  },
+  {
+    "test_name": "Query Interface Time-based",
+    "status": "PASS",
+    "details": "Time query returned 33 results",
+    "timestamp": "2025-12-09 09:46:48"
+  },
+  {
+    "test_name": "Query Interface Threshold",
+    "status": "PASS",
+    "details": "Threshold query returned 100 results",
+    "timestamp": "2025-12-09 09:46:48"
+  },
+  {
+    "test_name": "Domain Mapping Table",
+    "status": "PASS",
+    "details": "Signal maps to RepData",
+    "timestamp": "2025-12-09 09:46:48"
+  },
+  {
+    "test_name": "Domain Mapping Business Terms",
+    "status": "PASS",
+    "details": "Crossed resolves to exceeded",
+    "timestamp": "2025-12-09 09:46:48"
+  },
+  {
+    "test_name": "Domain Mapping Reverse",
+    "status": "PASS",
+    "details": "RepData reverse maps to signal",
+    "timestamp": "2025-12-09 09:46:48"
+  },
+  {
+    "test_name": "CLI Help Command",
+    "status": "PASS",
+    "details": "Help command executed successfully",
+    "timestamp": "2025-12-09 09:46:48"
+  },
+  {
+    "test_name": "CLI JSON Output",
+    "status": "PASS",
+    "details": "Valid JSON returned: True",
+    "timestamp": "2025-12-09 09:46:48"
+  },
+  {
+    "test_name": "CLI Batch Mode",
+    "status": "PASS",
+    "details": "Batch file processed successfully",
+    "timestamp": "2025-12-09 09:46:48"
+  },
+  {
+    "test_name": "Streamlit Import",
+    "status": "PASS",
+    "details": "Streamlit app imports successfully",
+    "timestamp": "2025-12-09 09:46:49"
+  },
+  {
+    "test_name": "Edge Case Empty Query",
+    "status": "FAIL",
+    "details": "Empty query should fail",
+    "timestamp": "2025-12-09 09:46:49"
+  },
+  {
+    "test_name": "Edge Case Invalid Query",
+    "status": "WARN",
+    "details": "Invalid query returned unexpected results",
+    "timestamp": "2025-12-09 09:46:49"
+  },
+  {
+    "test_name": "Edge Case Long Query",
+    "status": "PASS",
+    "details": "Long query processed",
+    "timestamp": "2025-12-09 09:46:49"
+  },
+  {
+    "test_name": "Performance Test",
+    "status": "PASS",
+    "details": "Query completed in 0.006s",
+    "timestamp": "2025-12-09 09:46:49"
+  }
+]
