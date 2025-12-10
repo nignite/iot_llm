@@ -140,8 +140,9 @@ if "your_pattern" in query_lower:
 ├── tests/                    # Test suite
 │   ├── test_queries.py          # Comprehensive test suite
 │   └── test_frontends.py        # Frontend testing
-├── sql/                      # SQL schema files
-├── db/oracle/               # Oracle-related files (legacy)
+├── db/                      # Database files and schemas
+│   ├── oracle/              # Oracle-related files (legacy)
+│   └── sqlite/              # SQLite schema files
 ├── docs/                    # Documentation
 │   └── SETUP.md             # Detailed setup guide
 ├── main.py                 # Main application entry point
