@@ -142,7 +142,7 @@ class FrontendTester:
     def test_query_interface_functionality(self):
         """Test the query interface directly"""
         try:
-            from claude_query_interface import ClaudeQueryInterface
+            from src.claude_query_interface import ClaudeQueryInterface
             
             interface = ClaudeQueryInterface()
             
@@ -209,7 +209,7 @@ class FrontendTester:
     def test_edge_cases(self):
         """Test edge cases and error handling"""
         try:
-            from claude_query_interface import ClaudeQueryInterface
+            from src.claude_query_interface import ClaudeQueryInterface
             
             interface = ClaudeQueryInterface()
             
@@ -275,7 +275,7 @@ class FrontendTester:
     def test_performance(self):
         """Test performance with larger queries"""
         try:
-            from claude_query_interface import ClaudeQueryInterface
+            from src.claude_query_interface import ClaudeQueryInterface
             
             interface = ClaudeQueryInterface()
             

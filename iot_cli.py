@@ -11,8 +11,8 @@ import json
 from datetime import datetime
 from typing import List, Dict
 import sqlite3
-from claude_query_interface import ClaudeQueryInterface
-from domain_mapping import DomainMapper
+from src.claude_query_interface import ClaudeQueryInterface
+from src.domain_mapping import DomainMapper
 
 try:
     import readline

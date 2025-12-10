@@ -11,8 +11,8 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import json
 import time
-from claude_query_interface import ClaudeQueryInterface
-from domain_mapping import DomainMapper
+from src.claude_query_interface import ClaudeQueryInterface
+from src.domain_mapping import DomainMapper
 
 # Configure Streamlit page
 st.set_page_config(

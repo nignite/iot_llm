@@ -27,17 +27,17 @@ A complete IoT database system with SQLite backend and Claude LLM integration fo
 
 1. **Setup the database:**
 ```bash
-python3 iot_database_setup.py
+python3 src/iot_database_setup.py
 ```
 
 2. **Test natural language queries:**
 ```bash
-python3 claude_query_interface.py
+python3 iot_cli.py
 ```
 
 3. **Run comprehensive tests:**
 ```bash
-python3 test_queries.py
+python3 tests/test_queries.py
 ```
 
 ## Sample Natural Language Queries
@@ -131,12 +131,21 @@ if "your_pattern" in query_lower:
 ## File Structure
 
 ```
-├── iot_database_setup.py     # Database creation and data generation
-├── domain_mapping.py         # Business term to technical term mapping
-├── claude_query_interface.py # Main natural language query interface
-├── test_queries.py          # Comprehensive test suite
-├── iot_production.db        # Generated SQLite database
-└── README.md               # This file
+├── src/                      # Core source code
+│   ├── iot_database_setup.py     # Database creation and data generation
+│   ├── domain_mapping.py         # Business term to technical term mapping
+│   └── claude_query_interface.py # Main natural language query interface
+├── tests/                    # Test suite
+│   ├── test_queries.py          # Comprehensive test suite
+│   └── test_frontends.py        # Frontend testing
+├── sql/                      # SQL schema files
+├── db/oracle/               # Oracle-related files (legacy)
+├── docs/                    # Documentation
+│   └── SETUP.md             # Detailed setup guide
+├── iot_cli.py              # Command-line interface
+├── iot_streamlit_app.py    # Web interface
+├── iot_production.db       # Generated SQLite database
+└── README.md              # This file
 ```
 
 ## Requirements

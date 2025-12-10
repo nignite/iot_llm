@@ -10,7 +10,7 @@ import json
 import re
 from datetime import datetime, timedelta
 from typing import Dict, List, Tuple, Optional
-from domain_mapping import DomainMapper
+from .domain_mapping import DomainMapper
 import anthropic
 
 # Load environment variables from .env file

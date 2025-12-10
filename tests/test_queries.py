@@ -3,8 +3,8 @@
 Test script to demonstrate various natural language queries
 """
 
-from claude_query_interface import ClaudeQueryInterface
-from domain_mapping import DomainMapper
+from src.claude_query_interface import ClaudeQueryInterface
+from src.domain_mapping import DomainMapper
 import json
 
 def run_test_queries():
