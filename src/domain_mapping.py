@@ -17,6 +17,11 @@ class DomainMapper:
         Args:
             config_path: Path to the db directory containing JSON files
                         If None, will auto-detect relative to this file
+        
+        Raises:
+            FileNotFoundError: If table_domain_mappings.json is not found
+            ValueError: If JSON file contains invalid data
+            RuntimeError: If mappings cannot be loaded
         """
         if config_path is None:
             # Auto-detect path relative to this file
@@ -59,50 +64,12 @@ class DomainMapper:
                 }
         
         except FileNotFoundError as e:
-            print(f"Warning: Could not load mapping file: {e}")
-            print("Falling back to minimal hardcoded mappings")
-            self._load_fallback_mappings()
+            raise FileNotFoundError(f"Required mapping file not found: {e}. Please ensure table_domain_mappings.json exists in {self.config_path}")
         except json.JSONDecodeError as e:
-            print(f"Warning: Invalid JSON in mapping file: {e}")
-            print("Falling back to minimal hardcoded mappings")
-            self._load_fallback_mappings()
+            raise ValueError(f"Invalid JSON in mapping file: {e}")
         except Exception as e:
-            print(f"Warning: Error loading mappings: {e}")
-            print("Falling back to minimal hardcoded mappings")
-            self._load_fallback_mappings()
+            raise RuntimeError(f"Error loading mappings: {e}")
     
-    def _load_fallback_mappings(self):
-        """Fallback minimal mappings if JSON files are unavailable"""
-        self.table_mappings = {
-            "signals": "RepData",
-            "signal": "RepData",
-            "alerts": "AlertLog", 
-            "alert": "AlertLog",
-            "devices": "DevMap",
-            "device": "DevMap",
-            "thresholds": "ThreshSet",
-            "threshold": "ThreshSet",
-            "logs": "RepItem",
-            "log": "RepItem",
-            "locations": "LocRef",
-            "location": "LocRef"
-        }
-        
-        self.column_mappings = {
-            "RepData": {
-                "timestamp": ["time", "datetime"],
-                "device_id": ["device"],
-                "value": ["measurement", "reading"]
-            }
-        }
-        
-        self.business_terms = {
-            "crossed": ["exceeded", "violated"],
-            "offline": ["disconnected", "down"],
-            "online": ["connected", "up"]
-        }
-        
-        self.table_descriptions = {}
     
     def get_table_name(self, domain_term: str) -> str:
         """Convert domain term to actual table name"""
