@@ -19,6 +19,7 @@ SQLite schema files for the current IoT database implementation:
 Legacy Oracle-related files and original exports:
 
 - **`km_export_1.sql`** - Original Oracle DDL export
+- **`extract_key_tables.py`** - Utility to extract IoT tables from Oracle exports
 - **`oracle_*.py`** - Oracle-specific Python modules
 - **`oracle_*.db`** - Oracle database files
 - **`populate_oracle_schema.py`** - Oracle schema population script

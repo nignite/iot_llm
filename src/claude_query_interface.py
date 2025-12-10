@@ -5,12 +5,13 @@ Converts natural language questions into SQL queries using Claude API
 """
 
 import os
-import sqlite3
 import json
 import re
 from datetime import datetime, timedelta
 from typing import Dict, List, Tuple, Optional
 from .domain_mapping import DomainMapper
+from .database import get_database_manager
+from .config import get_config
 import anthropic
 
 # Load environment variables from .env file
@@ -21,11 +22,29 @@ except ImportError:
     pass  # dotenv not installed, use system env vars
 
 class ClaudeQueryInterface:
-    def __init__(self, db_path: str = "iot_production.db"):
-        self.db_path = db_path
+    def __init__(self, database_manager=None):
+        """
+        Initialize Claude Query Interface with database abstraction
+        
+        Args:
+            database_manager: Optional DatabaseManager instance. If None, will create based on config.
+        """
+        self.config = get_config()
         self.mapper = DomainMapper()
-        self.conn = sqlite3.connect(db_path)
-        self.cursor = self.conn.cursor()
+        
+        # Use provided database manager or create one
+        if database_manager:
+            self.db = database_manager
+            self._owns_db = False
+        else:
+            self.db = get_database_manager()
+            self._owns_db = True
+            
+        # Connect to database
+        if not self.db.connect():
+            raise ConnectionError("Failed to connect to database")
+        
+        print(f"✓ Connected to {self.db.get_database_type().upper()} database")
         
         # Initialize Claude client
         api_key = os.getenv('ANTHROPIC_API_KEY')
@@ -49,17 +68,34 @@ class ClaudeQueryInterface:
         """Get complete database schema for context"""
         schema = {}
         
-        # Get all tables
-        self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
-        tables = [row[0] for row in self.cursor.fetchall()]
+        # Get all tables using database abstraction
+        tables = self.db.get_all_tables()
         
         for table in tables:
-            if table == 'sqlite_sequence':
-                continue
-            self.cursor.execute(f"PRAGMA table_info({table})")
-            columns = self.cursor.fetchall()
+            columns = self.db.get_table_schema(table)
+            
+            # Normalize column info for different database types
+            normalized_columns = []
+            for col in columns:
+                if self.db.get_database_type() == 'sqlite':
+                    # SQLite PRAGMA table_info format
+                    normalized_columns.append({
+                        'name': col.get('name', ''),
+                        'type': col.get('type', ''),
+                        'notnull': col.get('notnull', 0),
+                        'pk': col.get('pk', 0)
+                    })
+                else:
+                    # Oracle all_tab_columns format
+                    normalized_columns.append({
+                        'name': col.get('column_name', ''),
+                        'type': col.get('data_type', ''),
+                        'notnull': 1 if col.get('nullable') == 'N' else 0,
+                        'pk': 0  # Would need additional query for PK info
+                    })
+            
             schema[table] = {
-                'columns': [{'name': col[1], 'type': col[2], 'notnull': col[3], 'pk': col[5]} for col in columns],
+                'columns': normalized_columns,
                 'domain_names': self.mapper.reverse_lookup_table(table)
             }
         
@@ -68,11 +104,16 @@ class ClaudeQueryInterface:
     def get_sample_data(self, table: str, limit: int = 3) -> List[Dict]:
         """Get sample data from a table for context"""
         try:
-            self.cursor.execute(f"SELECT * FROM {table} LIMIT {limit}")
-            columns = [description[0] for description in self.cursor.description]
-            rows = self.cursor.fetchall()
-            return [dict(zip(columns, row)) for row in rows]
-        except:
+            # Use database abstraction layer
+            sql = f"SELECT * FROM {table}"
+            if self.db.get_database_type() == 'oracle':
+                sql += f" WHERE ROWNUM <= {limit}"
+            else:
+                sql += f" LIMIT {limit}"
+            
+            return self.db.execute_query(sql)
+        except Exception as e:
+            print(f"Warning: Could not get sample data from {table}: {e}")
             return []
     
     def create_claude_prompt(self, query: str) -> str:
@@ -364,20 +405,11 @@ SQL Query:"""
             if params:
                 print(f"📊 Parameters: {params}")
             
-            # Execute query
+            # Execute query using database abstraction
             if params:
-                self.cursor.execute(sql, params)
+                formatted_results = self.db.execute_query(sql, params)
             else:
-                self.cursor.execute(sql)
-            results = self.cursor.fetchall()
-            
-            # Get column names
-            column_names = [description[0] for description in self.cursor.description]
-            
-            # Format results
-            formatted_results = []
-            for row in results:
-                formatted_results.append(dict(zip(column_names, row)))
+                formatted_results = self.db.execute_query(sql)
             
             print(f"✅ Found {len(formatted_results)} results")
             
@@ -424,7 +456,8 @@ SQL Query:"""
     
     def close(self):
         """Close database connection"""
-        self.conn.close()
+        if self._owns_db and self.db:
+            self.db.disconnect()
 
 def main():
     """Demo the Claude Query Interface"""

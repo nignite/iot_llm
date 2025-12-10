@@ -1,6 +1,16 @@
 #!/usr/bin/env python3
 """
 Extract key IoT tables from Oracle schema and convert to SQLite
+
+This utility script processes Oracle export files (km_export_1.sql) and extracts
+specific IoT-related tables, converting them to SQLite format.
+
+Usage:
+    cd db/oracle/
+    python3 extract_key_tables.py
+
+Input: km_export_1.sql (Oracle export in current directory)
+Output: ../sqlite/key_tables.sql (SQLite schema)
 """
 
 import re
@@ -47,11 +57,12 @@ def extract_and_convert_key_tables():
         else:
             print(f"  Table {table_name} not found")
     
-    # Write the result
-    with open('key_iot_tables_sqlite.sql', 'w', encoding='utf-8') as f:
+    # Write the result to the sqlite directory
+    output_file = '../sqlite/key_tables.sql'
+    with open(output_file, 'w', encoding='utf-8') as f:
         f.write('\n'.join(sqlite_statements))
     
-    print(f"Extracted {len(key_tables)} tables to key_iot_tables_sqlite.sql")
+    print(f"Extracted {len(key_tables)} tables to {output_file}")
 
 def convert_table_to_sqlite(table_name, oracle_sql):
     """Convert a single Oracle table to SQLite"""
