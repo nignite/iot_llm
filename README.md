@@ -32,7 +32,9 @@ python3 src/iot_database_setup.py
 
 2. **Test natural language queries:**
 ```bash
-python3 iot_cli.py
+python3 main.py
+# or
+python3 iot_cli.py  # backwards compatible
 ```
 
 3. **Run comprehensive tests:**
@@ -142,7 +144,8 @@ if "your_pattern" in query_lower:
 ├── db/oracle/               # Oracle-related files (legacy)
 ├── docs/                    # Documentation
 │   └── SETUP.md             # Detailed setup guide
-├── iot_cli.py              # Command-line interface
+├── main.py                 # Main application entry point
+├── iot_cli.py              # Command-line interface module
 ├── iot_streamlit_app.py    # Web interface
 ├── iot_production.db       # Generated SQLite database
 └── README.md              # This file
