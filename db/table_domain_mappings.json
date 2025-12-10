@@ -1,0 +1,216 @@
+{
+  "description": "IoT Database Table Names and Domain Mappings",
+  "version": "1.0",
+  "generated_date": "2025-12-10",
+  "tables": {
+    "RepData": {
+      "description": "Raw sensor/signal data and measurements",
+      "purpose": "Stores real-time sensor readings and signal values",
+      "domain_names": [
+        "signal",
+        "signals", 
+        "signal_data",
+        "sensor_data",
+        "sensor_readings",
+        "measurements",
+        "readings",
+        "data_points"
+      ],
+      "column_mappings": {
+        "timestamp": ["time", "datetime", "recorded_at", "measured_at", "captured_at"],
+        "device_id": ["device", "sensor_id", "equipment_id", "hardware_id"],
+        "value": ["measurement", "reading", "data", "signal_value"],
+        "sensor_type": ["type", "kind", "category", "sensor_kind"],
+        "location_id": ["location", "site", "area", "zone"],
+        "quality_flag": ["quality", "validity", "status", "health"]
+      }
+    },
+    "RepItem": {
+      "description": "Aggregated/calculated data and analytics",
+      "purpose": "Stores processed, calculated, and aggregated sensor data",
+      "domain_names": [
+        "log",
+        "logs",
+        "calculated_data",
+        "aggregated_data",
+        "computed_values",
+        "analytics",
+        "calculations",
+        "aggregations"
+      ],
+      "column_mappings": {
+        "log_type": ["type", "kind", "category"],
+        "calculated_value": ["value", "result", "output"],
+        "calculation_method": ["method", "algorithm", "function"],
+        "source_signal_ids": ["sources", "inputs", "dependencies"]
+      }
+    },
+    "DevMap": {
+      "description": "Device configuration and mapping",
+      "purpose": "Stores device definitions, configurations, and metadata",
+      "domain_names": [
+        "device",
+        "devices",
+        "device_config",
+        "device_configuration",
+        "equipment",
+        "sensors",
+        "hardware"
+      ],
+      "column_mappings": {
+        "device_id": ["device", "id", "identifier"],
+        "device_name": ["name", "label", "description"],
+        "location": ["site", "area", "zone"],
+        "device_type": ["type", "kind", "category"],
+        "status": ["state", "condition", "health"]
+      }
+    },
+    "ThreshSet": {
+      "description": "Threshold and limit definitions",
+      "purpose": "Stores value limits, boundaries, and constraint definitions",
+      "domain_names": [
+        "threshold",
+        "thresholds",
+        "limits",
+        "boundaries",
+        "constraints",
+        "ranges",
+        "setpoints"
+      ],
+      "column_mappings": {
+        "sensor_type": ["type", "kind", "category"],
+        "min_value": ["minimum", "lower_bound", "min_limit"],
+        "max_value": ["maximum", "upper_bound", "max_limit"],
+        "warning_low": ["warn_low", "warning_minimum"],
+        "warning_high": ["warn_high", "warning_maximum"]
+      }
+    },
+    "AlertLog": {
+      "description": "Alert and alarm history",
+      "purpose": "Stores alert events, notifications, and incident records",
+      "domain_names": [
+        "alert",
+        "alerts",
+        "alarm",
+        "alarms",
+        "notifications",
+        "incidents",
+        "warnings",
+        "violations"
+      ],
+      "column_mappings": {
+        "alert_type": ["type", "kind", "category"],
+        "severity": ["level", "priority", "criticality"],
+        "actual_value": ["measured_value", "current_value", "observed_value"],
+        "threshold_value": ["limit", "boundary", "setpoint"]
+      }
+    },
+    "LocRef": {
+      "description": "Location reference and mapping",
+      "purpose": "Stores location definitions, site information, and geographical mapping",
+      "domain_names": [
+        "location",
+        "locations",
+        "site",
+        "sites",
+        "facility",
+        "facilities",
+        "area",
+        "areas",
+        "zone",
+        "zones"
+      ],
+      "column_mappings": {
+        "location_id": ["id", "identifier", "code"],
+        "location_name": ["name", "label", "description"],
+        "building": ["facility", "structure"],
+        "zone": ["area", "section", "region"]
+      }
+    }
+  },
+  "business_terms": {
+    "description": "Common business terminology and their technical equivalents",
+    "terms": {
+      "crossed": ["exceeded", "violated", "breached", "surpassed"],
+      "limits": ["thresholds", "boundaries", "constraints", "ranges"],
+      "last week": ["past week", "previous week", "7 days ago"],
+      "yesterday": ["past day", "previous day", "1 day ago"],
+      "today": ["current day", "this day"],
+      "offline": ["disconnected", "unavailable", "down"],
+      "online": ["connected", "available", "up", "active"],
+      "high": ["elevated", "maximum", "peak", "critical"],
+      "low": ["minimum", "reduced", "drop", "critical"],
+      "average": ["mean", "typical", "normal"],
+      "trend": ["pattern", "direction", "movement"],
+      "anomaly": ["outlier", "unusual", "abnormal", "deviation"]
+    }
+  },
+  "reverse_mappings": {
+    "description": "Quick lookup from domain terms to table names",
+    "signal": "RepData",
+    "signals": "RepData",
+    "signal_data": "RepData",
+    "sensor_data": "RepData",
+    "sensor_readings": "RepData",
+    "measurements": "RepData",
+    "readings": "RepData",
+    "data_points": "RepData",
+    "log": "RepItem",
+    "logs": "RepItem",
+    "calculated_data": "RepItem",
+    "aggregated_data": "RepItem",
+    "computed_values": "RepItem",
+    "analytics": "RepItem",
+    "calculations": "RepItem",
+    "aggregations": "RepItem",
+    "device": "DevMap",
+    "devices": "DevMap",
+    "device_config": "DevMap",
+    "device_configuration": "DevMap",
+    "equipment": "DevMap",
+    "sensors": "DevMap",
+    "hardware": "DevMap",
+    "threshold": "ThreshSet",
+    "thresholds": "ThreshSet",
+    "limits": "ThreshSet",
+    "boundaries": "ThreshSet",
+    "constraints": "ThreshSet",
+    "ranges": "ThreshSet",
+    "setpoints": "ThreshSet",
+    "alert": "AlertLog",
+    "alerts": "AlertLog",
+    "alarm": "AlertLog",
+    "alarms": "AlertLog",
+    "notifications": "AlertLog",
+    "incidents": "AlertLog",
+    "warnings": "AlertLog",
+    "violations": "AlertLog",
+    "location": "LocRef",
+    "locations": "LocRef",
+    "site": "LocRef",
+    "sites": "LocRef",
+    "facility": "LocRef",
+    "facilities": "LocRef",
+    "area": "LocRef",
+    "areas": "LocRef",
+    "zone": "LocRef",
+    "zones": "LocRef"
+  },
+  "usage": {
+    "description": "How to use this mapping file",
+    "examples": [
+      {
+        "query": "Show me all signals from last week",
+        "mapping": "signals -> RepData table, last week -> time filter"
+      },
+      {
+        "query": "Which devices are offline?", 
+        "mapping": "devices -> DevMap table, offline -> status = 'offline'"
+      },
+      {
+        "query": "Find alerts with high severity",
+        "mapping": "alerts -> AlertLog table, high -> severity level"
+      }
+    ]
+  }
+}

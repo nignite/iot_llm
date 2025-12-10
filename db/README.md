@@ -4,6 +4,10 @@ This directory contains database-related files organized by database system.
 
 ## Directory Structure
 
+### JSON Mapping Files
+- **`table_domain_mappings.json`** - Comprehensive table and domain mappings with descriptions
+- **`domain_to_table.json`** - Simple domain term to table name mappings
+
 ### `sqlite/`
 SQLite schema files for the current IoT database implementation:
 

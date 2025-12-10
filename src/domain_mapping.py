@@ -2,129 +2,107 @@
 """
 Domain Name to Table Name Mapping System for IoT Database
 Maps business/domain terminology to actual database table names
+Loads mappings from JSON configuration files
 """
 
+import json
+import os
+from pathlib import Path
+
 class DomainMapper:
-    def __init__(self):
+    def __init__(self, config_path: str = None):
+        """
+        Initialize domain mapper with mappings loaded from JSON files
+        
+        Args:
+            config_path: Path to the db directory containing JSON files
+                        If None, will auto-detect relative to this file
+        """
+        if config_path is None:
+            # Auto-detect path relative to this file
+            current_dir = Path(__file__).parent
+            config_path = current_dir.parent / "db"
+        else:
+            config_path = Path(config_path)
+        
+        self.config_path = config_path
+        self._load_mappings()
+    
+    def _load_mappings(self):
+        """Load all mappings from JSON configuration files"""
+        try:
+            # Load comprehensive mappings
+            mappings_file = self.config_path / "table_domain_mappings.json"
+            with open(mappings_file, 'r') as f:
+                data = json.load(f)
+            
+            # Extract table mappings from reverse_mappings section
+            self.table_mappings = data.get("reverse_mappings", {})
+            
+            # Extract column mappings from tables section
+            self.column_mappings = {}
+            for table_name, table_info in data.get("tables", {}).items():
+                if "column_mappings" in table_info:
+                    self.column_mappings[table_name] = table_info["column_mappings"]
+            
+            # Extract business terms
+            business_terms_data = data.get("business_terms", {})
+            self.business_terms = business_terms_data.get("terms", {})
+            
+            # Store table descriptions for reference
+            self.table_descriptions = {}
+            for table_name, table_info in data.get("tables", {}).items():
+                self.table_descriptions[table_name] = {
+                    "description": table_info.get("description", ""),
+                    "purpose": table_info.get("purpose", ""),
+                    "domain_names": table_info.get("domain_names", [])
+                }
+        
+        except FileNotFoundError as e:
+            print(f"Warning: Could not load mapping file: {e}")
+            print("Falling back to minimal hardcoded mappings")
+            self._load_fallback_mappings()
+        except json.JSONDecodeError as e:
+            print(f"Warning: Invalid JSON in mapping file: {e}")
+            print("Falling back to minimal hardcoded mappings")
+            self._load_fallback_mappings()
+        except Exception as e:
+            print(f"Warning: Error loading mappings: {e}")
+            print("Falling back to minimal hardcoded mappings")
+            self._load_fallback_mappings()
+    
+    def _load_fallback_mappings(self):
+        """Fallback minimal mappings if JSON files are unavailable"""
         self.table_mappings = {
-            # Signal Data Mappings
+            "signals": "RepData",
             "signal": "RepData",
-            "signals": "RepData", 
-            "signal_data": "RepData",
-            "sensor_data": "RepData",
-            "sensor_readings": "RepData",
-            "measurements": "RepData",
-            "readings": "RepData",
-            "data_points": "RepData",
-            
-            # Log/Aggregated Data Mappings
-            "log": "RepItem",
-            "logs": "RepItem",
-            "calculated_data": "RepItem",
-            "aggregated_data": "RepItem",
-            "computed_values": "RepItem",
-            "analytics": "RepItem",
-            "calculations": "RepItem",
-            "aggregations": "RepItem",
-            
-            # Device Mappings
-            "device": "DevMap",
-            "devices": "DevMap",
-            "device_config": "DevMap",
-            "device_configuration": "DevMap",
-            "equipment": "DevMap",
-            "sensors": "DevMap",
-            "hardware": "DevMap",
-            
-            # Threshold/Limits Mappings
-            "threshold": "ThreshSet",
-            "thresholds": "ThreshSet",
-            "limits": "ThreshSet",
-            "boundaries": "ThreshSet",
-            "constraints": "ThreshSet",
-            "ranges": "ThreshSet",
-            "setpoints": "ThreshSet",
-            
-            # Alert Mappings
+            "alerts": "AlertLog", 
             "alert": "AlertLog",
-            "alerts": "AlertLog",
-            "alarm": "AlertLog",
-            "alarms": "AlertLog",
-            "notifications": "AlertLog",
-            "incidents": "AlertLog",
-            "warnings": "AlertLog",
-            "violations": "AlertLog",
-            
-            # Location Mappings
-            "location": "LocRef",
+            "devices": "DevMap",
+            "device": "DevMap",
+            "thresholds": "ThreshSet",
+            "threshold": "ThreshSet",
+            "logs": "RepItem",
+            "log": "RepItem",
             "locations": "LocRef",
-            "site": "LocRef",
-            "sites": "LocRef",
-            "facility": "LocRef",
-            "facilities": "LocRef",
-            "area": "LocRef",
-            "areas": "LocRef",
-            "zone": "LocRef",
-            "zones": "LocRef"
+            "location": "LocRef"
         }
         
         self.column_mappings = {
             "RepData": {
-                "timestamp": ["time", "datetime", "recorded_at", "measured_at", "captured_at"],
-                "device_id": ["device", "sensor_id", "equipment_id", "hardware_id"],
-                "value": ["measurement", "reading", "data", "signal_value"],
-                "sensor_type": ["type", "kind", "category", "sensor_kind"],
-                "location_id": ["location", "site", "area", "zone"],
-                "quality_flag": ["quality", "validity", "status", "health"]
-            },
-            "RepItem": {
-                "log_type": ["type", "kind", "category"],
-                "calculated_value": ["value", "result", "output"],
-                "calculation_method": ["method", "algorithm", "function"],
-                "source_signal_ids": ["sources", "inputs", "dependencies"]
-            },
-            "DevMap": {
-                "device_id": ["device", "id", "identifier"],
-                "device_name": ["name", "label", "description"],
-                "location": ["site", "area", "zone"],
-                "device_type": ["type", "kind", "category"],
-                "status": ["state", "condition", "health"]
-            },
-            "ThreshSet": {
-                "sensor_type": ["type", "kind", "category"],
-                "min_value": ["minimum", "lower_bound", "min_limit"],
-                "max_value": ["maximum", "upper_bound", "max_limit"],
-                "warning_low": ["warn_low", "warning_minimum"],
-                "warning_high": ["warn_high", "warning_maximum"]
-            },
-            "AlertLog": {
-                "alert_type": ["type", "kind", "category"],
-                "severity": ["level", "priority", "criticality"],
-                "actual_value": ["measured_value", "current_value", "observed_value"],
-                "threshold_value": ["limit", "boundary", "setpoint"]
-            },
-            "LocRef": {
-                "location_id": ["id", "identifier", "code"],
-                "location_name": ["name", "label", "description"],
-                "building": ["facility", "structure"],
-                "zone": ["area", "section", "region"]
+                "timestamp": ["time", "datetime"],
+                "device_id": ["device"],
+                "value": ["measurement", "reading"]
             }
         }
         
         self.business_terms = {
-            "crossed": ["exceeded", "violated", "breached", "surpassed"],
-            "limits": ["thresholds", "boundaries", "constraints", "ranges"],
-            "last week": ["past week", "previous week", "7 days ago"],
-            "yesterday": ["past day", "previous day", "1 day ago"],
-            "today": ["current day", "this day"],
-            "offline": ["disconnected", "unavailable", "down"],
-            "online": ["connected", "available", "up", "active"],
-            "high": ["elevated", "maximum", "peak", "critical"],
-            "low": ["minimum", "reduced", "drop", "critical"],
-            "average": ["mean", "typical", "normal"],
-            "trend": ["pattern", "direction", "movement"],
-            "anomaly": ["outlier", "unusual", "abnormal", "deviation"]
+            "crossed": ["exceeded", "violated"],
+            "offline": ["disconnected", "down"],
+            "online": ["connected", "up"]
         }
+        
+        self.table_descriptions = {}
     
     def get_table_name(self, domain_term: str) -> str:
         """Convert domain term to actual table name"""
@@ -140,36 +118,68 @@ class DomainMapper:
         """Resolve business terminology to technical terms"""
         return self.business_terms.get(term.lower(), [term])
     
+    def get_table_description(self, table_name: str) -> dict:
+        """Get description and metadata for a table"""
+        return self.table_descriptions.get(table_name, {
+            "description": "No description available",
+            "purpose": "No purpose defined", 
+            "domain_names": []
+        })
+    
     def get_all_mappings(self) -> dict:
         """Return all mappings for reference"""
         return {
             "table_mappings": self.table_mappings,
             "column_mappings": self.column_mappings,
-            "business_terms": self.business_terms
+            "business_terms": self.business_terms,
+            "table_descriptions": self.table_descriptions
         }
     
     def reverse_lookup_table(self, table_name: str) -> list:
         """Find all domain terms that map to a specific table"""
         return [domain for domain, table in self.table_mappings.items() if table == table_name]
+    
+    def reload_mappings(self):
+        """Reload mappings from JSON files (useful for runtime updates)"""
+        self._load_mappings()
+    
+    def get_config_path(self) -> Path:
+        """Get the path to configuration files"""
+        return self.config_path
 
 def main():
+    """Demo the Domain Mapper functionality"""
     mapper = DomainMapper()
     
-    print("Domain to Table Mappings:")
-    print("-" * 40)
-    for domain, table in mapper.table_mappings.items():
-        print(f"{domain:20} -> {table}")
+    print("Domain Mapper - Loading from JSON Configuration")
+    print("=" * 50)
+    print(f"Config path: {mapper.get_config_path()}")
     
-    print("\nExample Usage:")
+    print("\nDomain to Table Mappings (sample):")
     print("-" * 40)
-    print(f"'signal' maps to: {mapper.get_table_name('signal')}")
-    print(f"'alerts' maps to: {mapper.get_table_name('alerts')}")
-    print(f"'device_config' maps to: {mapper.get_table_name('device_config')}")
+    sample_terms = ["signal", "alerts", "devices", "thresholds", "locations"]
+    for domain in sample_terms:
+        table = mapper.get_table_name(domain)
+        print(f"{domain:15} -> {table}")
     
-    print("\nBusiness Term Resolution:")
+    print("\nTable Descriptions:")
     print("-" * 40)
-    print(f"'crossed' resolves to: {mapper.resolve_business_term('crossed')}")
-    print(f"'limits' resolves to: {mapper.resolve_business_term('limits')}")
+    unique_tables = set(mapper.table_mappings.values())
+    for table in sorted(unique_tables):
+        desc = mapper.get_table_description(table)
+        print(f"{table}:")
+        print(f"  Description: {desc['description']}")
+        print(f"  Domain names: {', '.join(desc['domain_names'][:3])}...")
+        print()
+    
+    print("Business Term Resolution:")
+    print("-" * 40)
+    business_terms = ["crossed", "offline", "high", "limits"]
+    for term in business_terms:
+        resolved = mapper.resolve_business_term(term)
+        print(f"'{term}' -> {resolved}")
+    
+    print(f"\nTotal mappings loaded: {len(mapper.table_mappings)}")
 
 if __name__ == "__main__":
     main()
