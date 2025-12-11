@@ -17,6 +17,11 @@ def setup_development():
     if Path('.env.development').exists():
         shutil.copy('.env.development', '.env')
         print("✅ Copied .env.development to .env")
+    elif Path('.env.development.template').exists():
+        shutil.copy('.env.development.template', '.env.development')
+        shutil.copy('.env.development.template', '.env')
+        print("✅ Created .env.development from template and copied to .env")
+        print("⚠️  Please update .env.development with your actual API key")
     else:
         print("❌ .env.development file not found")
         return False

@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
 """
-Claude LLM Integration for Natural Language Queries to IoT Database
-Converts natural language questions into SQL queries using Claude API
+Enhanced LLM Integration for Natural Language Queries to IoT Database
+Supports multiple LLM providers with knowledge building and fallback mechanisms
 """
 
 import os
 import json
 import re
+import logging
 from datetime import datetime, timedelta
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Any
 from .domain_mapping import DomainMapper
 from .database import get_database_manager
 from .config import get_config
+from .llm_providers import LLMProviderManager
+from .knowledge_system import QueryKnowledgeSystem, EnhancedSchemaAnalyzer
+from .isa95_domain import ISA95DomainKnowledge, ISA95QueryEnhancer
 import anthropic
 
 # Load environment variables from .env file
@@ -21,13 +25,18 @@ try:
 except ImportError:
     pass  # dotenv not installed, use system env vars
 
-class ClaudeQueryInterface:
-    def __init__(self, database_manager=None):
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+class EnhancedQueryInterface:
+    def __init__(self, database_manager=None, llm_config=None):
         """
-        Initialize Claude Query Interface with database abstraction
+        Initialize Enhanced Query Interface with multi-LLM support and knowledge building
         
         Args:
             database_manager: Optional DatabaseManager instance. If None, will create based on config.
+            llm_config: Configuration for LLM providers
         """
         self.config = get_config()
         self.mapper = DomainMapper()
@@ -46,7 +55,44 @@ class ClaudeQueryInterface:
         
         print(f"✓ Connected to {self.db.get_database_type().upper()} database")
         
-        # Initialize Claude client
+        # Initialize LLM provider manager
+        default_llm_config = {
+            'claude': {
+                'api_key': os.getenv('ANTHROPIC_API_KEY'),
+                'model': 'claude-3-haiku-20240307'
+            },
+            'openai': {
+                'api_key': os.getenv('OPENAI_API_KEY'),
+                'model': 'gpt-4'
+            },
+            'fallback_order': ['claude', 'openai']
+        }
+        
+        if llm_config:
+            default_llm_config.update(llm_config)
+        
+        self.llm_manager = LLMProviderManager(default_llm_config)
+        
+        # Initialize knowledge system
+        self.knowledge = QueryKnowledgeSystem()
+        
+        # Initialize schema analyzer
+        self.schema_analyzer = EnhancedSchemaAnalyzer(self.db, self.knowledge)
+        
+        # Initialize ISA-95 domain knowledge
+        self.isa95_domain = ISA95DomainKnowledge()
+        self.isa95_enhancer = ISA95QueryEnhancer(self.isa95_domain)
+        
+        # Cache for schema context
+        self._schema_context = None
+        self._schema_analysis = None
+        self._isa95_context = None
+        
+        print(f"✓ LLM providers initialized: {list(self.llm_manager.providers.keys())}")
+        print(f"✓ Current provider: {self.llm_manager.current_provider}")
+        print(f"✓ ISA-95 Manufacturing domain knowledge loaded")
+        
+        # Legacy Claude client for fallback
         api_key = os.getenv('ANTHROPIC_API_KEY')
         if not api_key:
             print("WARNING: ANTHROPIC_API_KEY not found. Set environment variable to use Claude API.")
@@ -385,21 +431,42 @@ SQL Query:"""
         return sql, params
     
     def execute_natural_language_query(self, query: str) -> Dict:
-        """Execute a natural language query against the IoT database"""
+        """Execute a natural language query against the IoT database with enhanced LLM support"""
+        start_time = datetime.now()
+        
         try:
             print(f"🔍 Processing query: {query}")
             
-            # Try Claude API first
-            sql, used_claude = self.generate_sql_with_claude(query)
+            # Get similar examples from knowledge system
+            examples = self.knowledge.get_similar_examples(query, limit=3)
             
-            if not sql:
+            # Build enhanced schema context
+            context = self._get_enhanced_schema_context()
+            
+            sql = None
+            params = []
+            provider_info = None
+            
+            # Try LLM providers first with ISA-95 enhancement
+            try:
+                # Apply ISA-95 manufacturing term mapping
+                enhanced_query = self.isa95_domain.map_manufacturing_terms(query)
+                
+                sql, provider_info = self.llm_manager.generate_sql(enhanced_query, context, examples)
+                print(f"🤖 {provider_info['provider'].title()} generated SQL: {sql}")
+                
+                # Check if SQL contains parameters or is just explanatory text
+                if not self._is_valid_sql(sql):
+                    raise Exception("Generated response is not valid SQL")
+                    
+            except Exception as e:
+                print(f"❌ LLM providers failed: {e}")
                 print("📝 Using fallback rule-based processing...")
                 # Parse time expressions for fallback
                 cleaned_query, start_date, end_date = self.parse_time_expressions(query)
                 # Build SQL query using fallback method
                 sql, params = self.build_sql_query_fallback(cleaned_query, start_date, end_date)
-            else:
-                params = []  # Claude generates complete SQL with embedded values
+                provider_info = {'provider': 'fallback', 'model': 'rule-based'}
             
             print(f"🗃️ Executing SQL: {sql}")
             if params:
@@ -411,53 +478,210 @@ SQL Query:"""
             else:
                 formatted_results = self.db.execute_query(sql)
             
+            execution_time = (datetime.now() - start_time).total_seconds() * 1000
             print(f"✅ Found {len(formatted_results)} results")
             
-            return {
+            # Record successful query in knowledge system
+            self.knowledge.record_query(
+                natural_query=query,
+                generated_sql=sql,
+                execution_success=True,
+                execution_time_ms=execution_time,
+                result_count=len(formatted_results),
+                provider_info=provider_info
+            )
+            
+            # Generate ISA-95 manufacturing insights
+            query_result = {
                 'success': True,
                 'query': query,
                 'sql': sql,
                 'params': params if params else [],
                 'results': formatted_results,
                 'count': len(formatted_results),
-                'used_claude': used_claude,
-                'time_range': None  # Could be enhanced to extract from Claude response
+                'provider_used': provider_info.get('provider', 'unknown') if provider_info else 'unknown',
+                'execution_time_ms': execution_time,
+                'time_range': None  # Could be enhanced to extract from response
             }
             
+            # Add manufacturing insights
+            manufacturing_insights = self.isa95_enhancer.suggest_manufacturing_insights(query_result)
+            if manufacturing_insights:
+                query_result['manufacturing_insights'] = manufacturing_insights
+                print(f"🏭 Manufacturing Insights: {'; '.join(manufacturing_insights[:2])}")  # Show first 2 insights
+            
+            return query_result
+            
         except Exception as e:
+            execution_time = (datetime.now() - start_time).total_seconds() * 1000
             error_msg = str(e)
             print(f"❌ Error: {error_msg}")
+            
+            # Record failed query for learning
+            if 'sql' in locals() and sql:
+                self.knowledge.record_query(
+                    natural_query=query,
+                    generated_sql=sql,
+                    execution_success=False,
+                    execution_time_ms=execution_time,
+                    provider_info=provider_info,
+                    error_message=error_msg
+                )
+            
             return {
                 'success': False,
                 'query': query,
                 'error': error_msg,
                 'sql': sql if 'sql' in locals() else None,
-                'used_claude': used_claude if 'used_claude' in locals() else False
+                'provider_used': provider_info.get('provider', 'unknown') if provider_info else 'unknown'
             }
     
     def get_sample_queries(self) -> List[str]:
-        """Return sample natural language queries for testing"""
-        return [
+        """Return sample natural language queries for testing with ISA-95 manufacturing focus"""
+        basic_queries = [
             "Which signals crossed the value limits last week?",
-            "Show me all alerts from yesterday",
-            "What devices are currently offline?", 
+            "Show me all alerts from yesterday", 
+            "What devices are currently offline?",
             "Find temperature readings above 30 degrees",
-            "Count how many anomalies were detected this week",
-            "What was the average humidity last month?",
             "Show me all critical alerts",
-            "Which sensors had quality issues today?",
-            "List all devices in Factory Floor A",
-            "What are the maximum pressure readings from last week?",
-            "Show me devices with power consumption over 100 watts",
-            "Find all motion sensor alerts this week",
-            "What's the current status of all temperature sensors?",
-            "Show me humidity readings between 40 and 60 percent"
+            "What's the current status of all temperature sensors?"
         ]
+        
+        # Add ISA-95 manufacturing queries
+        try:
+            schema = self.get_database_schema()
+            isa95_queries = self.isa95_domain.suggest_isa95_queries(schema)
+            return basic_queries + isa95_queries[:5]  # Combine basic and ISA-95 specific queries
+        except:
+            return basic_queries
+    
+    def get_isa95_context(self) -> Dict[str, Any]:
+        """Get ISA-95 manufacturing domain context"""
+        return self.isa95_domain.get_manufacturing_context()
+    
+    def get_manufacturing_metrics(self) -> Dict[str, Any]:
+        """Get available manufacturing metrics and KPIs"""
+        return self.isa95_domain.common_metrics
+    
+    def _get_enhanced_schema_context(self) -> str:
+        """Build enhanced schema context with knowledge insights and ISA-95 domain knowledge"""
+        if self._schema_context is None:
+            # Get basic schema
+            schema = self.get_database_schema()
+            
+            # Get domain vocabulary
+            vocabulary = self.knowledge.get_domain_vocabulary()
+            
+            # Get schema insights
+            insights = self.knowledge.get_schema_insights()
+            
+            context_parts = [
+                "ISA-95 Manufacturing IoT Database Schema with AI-Enhanced Insights:",
+                "",
+                "=== DATABASE SCHEMA ==="
+            ]
+            
+            for table, info in schema.items():
+                context_parts.append(f"\nTable: {table}")
+                context_parts.append(f"Domain Names: {', '.join(info['domain_names'])}")
+                
+                for col in info['columns']:
+                    col_type = f"{col['type']}"
+                    if col['pk']:
+                        col_type += " (Primary Key)"
+                    context_parts.append(f"  - {col['name']}: {col_type}")
+                
+                # Add insights if available
+                if table in insights.get('common_filters', {}):
+                    filters = insights['common_filters'][table]
+                    if filters:
+                        context_parts.append(f"  Common filters: {', '.join([f['description'] for f in filters[:3]])}")
+            
+            # Add learned domain vocabulary
+            if vocabulary:
+                context_parts.extend([
+                    "",
+                    "=== LEARNED VOCABULARY ===",
+                    ""
+                ])
+                for term, mapping in list(vocabulary.items())[:10]:  # Top 10 terms
+                    context_parts.append(f"  '{term}' → {mapping}")
+            
+            # Add ISA-95 manufacturing context
+            basic_context = "\n".join(context_parts)
+            enhanced_context = self.isa95_domain.enhance_query_context("", basic_context)
+            
+            # Add ISA-95 suggested queries
+            isa95_suggestions = self.isa95_domain.suggest_isa95_queries(schema)
+            if isa95_suggestions:
+                context_parts.extend([
+                    "",
+                    "=== ISA-95 MANUFACTURING QUERY EXAMPLES ===",
+                    ""
+                ])
+                for suggestion in isa95_suggestions[:5]:  # Top 5 suggestions
+                    context_parts.append(f"  • {suggestion}")
+            
+            self._schema_context = enhanced_context
+        
+        return self._schema_context
+    
+    def _is_valid_sql(self, text: str) -> bool:
+        """Check if the generated text is valid SQL"""
+        if not text or not isinstance(text, str):
+            return False
+        
+        # Basic SQL validation
+        text_upper = text.upper().strip()
+        
+        # Must start with a SQL command
+        sql_commands = ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'WITH']
+        if not any(text_upper.startswith(cmd) for cmd in sql_commands):
+            return False
+        
+        # Should not contain explanation phrases
+        explanation_phrases = [
+            'THE PROVIDED', 'I CANNOT', 'PLEASE NOTE', 'HOWEVER',
+            'UNFORTUNATELY', 'SORRY', 'WITHOUT A CLEAR'
+        ]
+        if any(phrase in text_upper for phrase in explanation_phrases):
+            return False
+        
+        return True
+    
+    def switch_llm_provider(self, provider_name: str) -> bool:
+        """Switch to a specific LLM provider"""
+        return self.llm_manager.switch_provider(provider_name)
+    
+    def get_provider_status(self) -> Dict[str, Any]:
+        """Get status of all LLM providers"""
+        return self.llm_manager.get_provider_status()
+    
+    def get_knowledge_stats(self, days_back: int = 30) -> Dict[str, Any]:
+        """Get knowledge system statistics"""
+        return self.knowledge.get_success_stats(days_back)
+    
+    def get_schema_analysis(self) -> Dict[str, Any]:
+        """Get comprehensive schema analysis"""
+        if self._schema_analysis is None:
+            self._schema_analysis = self.schema_analyzer.analyze_schema()
+        return self._schema_analysis
     
     def close(self):
-        """Close database connection"""
+        """Close database and knowledge system connections"""
         if self._owns_db and self.db:
             self.db.disconnect()
+        
+        if self.knowledge:
+            self.knowledge.close()
+
+
+# Maintain backward compatibility
+class ClaudeQueryInterface(EnhancedQueryInterface):
+    """Legacy class name for backward compatibility"""
+    def __init__(self, database_manager=None):
+        print("ℹ️  Using legacy ClaudeQueryInterface. Consider upgrading to EnhancedQueryInterface.")
+        super().__init__(database_manager)
 
 def main():
     """Demo the Claude Query Interface"""
